@@ -20,6 +20,7 @@ export interface NodeData {
   provider?: 'openai' | 'anthropic' | string
   model?: string
   prompt?: string
+  input?: string
   status?: 'idle' | 'running' | 'completed' | 'error'
   output?: string
   [key: string]: unknown

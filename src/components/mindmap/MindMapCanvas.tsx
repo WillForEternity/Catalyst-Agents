@@ -13,6 +13,7 @@ import {
 import { useMindMapStore, NodeData } from '@/store/mindmap-store'
 import { v4 as uuidv4 } from 'uuid'
 import AgentNode from './AgentNode'
+import { ApiKeyManager } from '@/components/settings/ApiKeyManager'
 
 // Import React Flow styles
 import '@xyflow/react/dist/style.css'
@@ -46,7 +47,9 @@ export default function MindMapCanvas() {
         provider: 'openai',
         model: 'gpt-4',
         prompt: '',
+        input: '',
         status: 'idle',
+        output: '',
       } as NodeData,
     }
 
@@ -76,13 +79,17 @@ export default function MindMapCanvas() {
       <Background />
       <Controls />
       <MiniMap />
-      <Panel position="top-right" className="rounded-md bg-card p-2 shadow-md">
+      <Panel
+        position="top-right"
+        className="flex flex-col space-y-2 rounded-md bg-card p-2 shadow-md"
+      >
         <button
           onClick={handleAddNode}
           className="rounded-md bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
         >
           Add Agent Node
         </button>
+        <ApiKeyManager />
       </Panel>
     </ReactFlow>
   )
