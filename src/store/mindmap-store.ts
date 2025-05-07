@@ -1,0 +1,101 @@
+import { create } from 'zustand'
+import {
+  Connection,
+  Edge,
+  EdgeChange,
+  Node,
+  NodeChange,
+  addEdge,
+  OnNodesChange,
+  OnEdgesChange,
+  OnConnect,
+  applyNodeChanges,
+  applyEdgeChanges,
+} from '@xyflow/react'
+
+// Define the node data interface as specified in the project guide
+// Adding index signature to satisfy Record<string, unknown> constraint
+export interface NodeData {
+  label: string
+  provider?: 'openai' | 'anthropic' | string
+  model?: string
+  prompt?: string
+  status?: 'idle' | 'running' | 'completed' | 'error'
+  output?: string
+  [key: string]: unknown
+}
+
+// Define the store state interface
+export interface MindMapState {
+  nodes: Node<NodeData>[]
+  edges: Edge[]
+  onNodesChange: OnNodesChange
+  onEdgesChange: OnEdgesChange
+  onConnect: OnConnect
+  addNode: (node: Node<NodeData>) => void
+  updateNodeData: (nodeId: string, data: Partial<NodeData>) => void
+  setNodes: (nodes: Node<NodeData>[]) => void
+  setEdges: (edges: Edge[]) => void
+}
+
+// Create the Zustand store
+export const useMindMapStore = create<MindMapState>((set, get) => ({
+  nodes: [] as Node<NodeData>[],
+  edges: [] as Edge[],
+
+  // Handle node changes (position, selection, etc.)
+  onNodesChange: (changes: NodeChange[]) => {
+    set({
+      nodes: applyNodeChanges(changes, get().nodes) as Node<NodeData>[],
+    })
+  },
+
+  // Handle edge changes
+  onEdgesChange: (changes: EdgeChange[]) => {
+    set({
+      edges: applyEdgeChanges(changes, get().edges) as Edge[],
+    })
+  },
+
+  // Handle connecting nodes with edges
+  onConnect: (connection: Connection) => {
+    set({
+      edges: addEdge(connection, get().edges),
+    })
+  },
+
+  // Add a new node
+  addNode: (node: Node<NodeData>) => {
+    set({
+      nodes: [...get().nodes, node],
+    })
+  },
+
+  // Update a node's data
+  updateNodeData: (nodeId: string, data: Partial<NodeData>) => {
+    set({
+      nodes: get().nodes.map((node) => {
+        if (node.id === nodeId) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              ...data,
+            },
+          }
+        }
+        return node
+      }),
+    })
+  },
+
+  // Set all nodes (e.g., when loading a saved mind map)
+  setNodes: (nodes: Node<NodeData>[]) => {
+    set({ nodes })
+  },
+
+  // Set all edges (e.g., when loading a saved mind map)
+  setEdges: (edges: Edge[]) => {
+    set({ edges })
+  },
+}))

@@ -1,17 +1,26 @@
 'use client'
 
-import ClientAuthButton from '@/components/ClientAuthButton'
-import ThemeToggle from '@/components/ThemeToggle'
+import { useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default function Home() {
+export default function MindMapPage() {
+  const router = useRouter()
+
+  const handleBack = useCallback(() => {
+    router.push('/')
+  }, [router])
+
   return (
     <div className="flex h-screen w-full flex-col">
       <div className="flex h-16 w-full items-center justify-between border-b border-b-foreground/10 px-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold">Mind Flow</h1>
-          <ClientAuthButton />
-        </div>
-        <ThemeToggle />
+        <button
+          onClick={handleBack}
+          className="flex items-center text-sm font-medium"
+        >
+          <span className="mr-2">←</span> Back to Home
+        </button>
+        <h1 className="text-xl font-bold">Mind Flow</h1>
+        <div className="w-24"></div> {/* Spacer for balance */}
       </div>
 
       <div className="flex w-full flex-1 items-center justify-center">
@@ -27,20 +36,6 @@ export default function Home() {
           </p>
         </div>
       </div>
-
-      <footer className="w-full justify-center border-t border-t-foreground/10 p-4 text-center text-xs">
-        <p>
-          Powered by{' '}
-          <a
-            href="https://supabase.com"
-            target="_blank"
-            className="font-bold hover:underline"
-            rel="noreferrer"
-          >
-            Supabase
-          </a>
-        </p>
-      </footer>
     </div>
   )
 }
