@@ -2,6 +2,8 @@
 
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import MindMapCanvas from '@/components/mindmap/MindMapCanvas'
+import MindMapProvider from '@/components/mindmap/MindMapProvider'
 
 export default function MindMapPage() {
   const router = useRouter()
@@ -23,17 +25,11 @@ export default function MindMapPage() {
         <div className="w-24"></div> {/* Spacer for balance */}
       </div>
 
-      <div className="flex w-full flex-1 items-center justify-center">
-        <div className="max-w-md p-8 text-center">
-          <h2 className="mb-4 text-2xl font-bold">Mind Map Coming Soon</h2>
-          <p className="mb-6">
-            We&apos;re working on implementing the interactive mind map for AI
-            agent workflows.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            This page will feature a React Flow canvas where you can create,
-            connect, and configure AI agent nodes.
-          </p>
+      <div className="flex w-full flex-1 overflow-hidden p-4">
+        <div className="flex h-full w-full overflow-hidden rounded-lg border border-border">
+          <MindMapProvider>
+            <MindMapCanvas />
+          </MindMapProvider>
         </div>
       </div>
     </div>
