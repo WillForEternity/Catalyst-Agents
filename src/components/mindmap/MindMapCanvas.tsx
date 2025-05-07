@@ -12,36 +12,14 @@ import {
 } from '@xyflow/react'
 import { useMindMapStore, NodeData } from '@/store/mindmap-store'
 import { v4 as uuidv4 } from 'uuid'
+import AgentNode from './AgentNode'
 
 // Import React Flow styles
 import '@xyflow/react/dist/style.css'
 
-// We'll define a simple custom node for now until we fix the AgentNode component
-const CustomNode = ({ data }: { data: NodeData }) => (
-  <div className="w-64 rounded-md border border-border bg-card p-4 shadow-md">
-    <div className="-mx-4 -mt-4 mb-3 rounded-t-md bg-gradient-to-r from-[#57ecb2] to-[#50b6ff] p-2">
-      <h3 className="font-medium text-white">{data.label}</h3>
-    </div>
-    <div className="text-xs">
-      <p>
-        <span className="text-muted-foreground">Provider:</span>{' '}
-        {data.provider || 'Not set'}
-      </p>
-      <p>
-        <span className="text-muted-foreground">Model:</span>{' '}
-        {data.model || 'Not set'}
-      </p>
-      <p className="mt-2">
-        <span className="text-muted-foreground">Status:</span>{' '}
-        {data.status || 'idle'}
-      </p>
-    </div>
-  </div>
-)
-
 // Register custom node types
 const nodeTypes = {
-  agent: CustomNode,
+  agent: AgentNode,
 }
 
 export default function MindMapCanvas() {
@@ -64,7 +42,7 @@ export default function MindMapCanvas() {
       type: 'agent',
       position,
       data: {
-        label: 'New Agent',
+        label: 'New Node',
         provider: 'openai',
         model: 'gpt-4',
         prompt: '',
@@ -74,6 +52,12 @@ export default function MindMapCanvas() {
 
     addNode(newNode)
   }, [addNode])
+
+  // Define default edge options for animated dashed lines
+  const defaultEdgeOptions = {
+    animated: true,
+    style: { strokeDasharray: '5 5' },
+  }
 
   return (
     <ReactFlow
@@ -85,6 +69,9 @@ export default function MindMapCanvas() {
       nodeTypes={nodeTypes}
       fitView
       className="bg-background"
+      snapToGrid={true}
+      snapGrid={[15, 15]}
+      defaultEdgeOptions={defaultEdgeOptions}
     >
       <Background />
       <Controls />

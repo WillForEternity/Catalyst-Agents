@@ -1,26 +1,21 @@
 'use client'
 
-import { memo } from 'react'
-import { Handle, Position, NodeProps } from '@xyflow/react'
+import { memo, ChangeEvent } from 'react'
+import { Handle, Position, NodeProps, Node } from '@xyflow/react'
+import {
+  useMindMapStore,
+  NodeData as StoreNodeData,
+} from '@/store/mindmap-store'
 
-// A simplified node data interface to avoid TypeScript errors
-interface SimpleNodeData {
-  label: string
-  provider?: string
-  model?: string
-  status?: string
-}
+const AgentNode = memo(({ id, data }: NodeProps<Node<StoreNodeData>>) => {
+  const { updateNodeData } = useMindMapStore()
 
-const AgentNode = memo(({ id, data }: NodeProps) => {
-  // Cast data to our simplified interface with safer approach
-  const nodeData: SimpleNodeData = {
-    label: (data as any)?.label || 'Agent',
-    provider: (data as any)?.provider,
-    model: (data as any)?.model,
-    status: (data as any)?.status,
+  const nodeData = data
+
+  const handleLabelChange = (event: ChangeEvent<HTMLInputElement>) => {
+    updateNodeData(id, { label: event.target.value })
   }
 
-  // Get status color based on node status
   const getStatusColor = () => {
     switch (nodeData.status) {
       case 'running':
@@ -30,58 +25,51 @@ const AgentNode = memo(({ id, data }: NodeProps) => {
       case 'error':
         return 'bg-red-500'
       default:
-        return 'bg-blue-500'
+        return 'bg-gray-400'
     }
   }
 
   return (
-    <div className="w-64 rounded-md border border-border bg-card shadow-md">
-      {/* Top connection handle */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        className="h-3 w-3 bg-blue-500"
-      />
-
-      {/* Header with gradient background */}
-      <div className="rounded-t-md bg-gradient-to-r from-[#57ecb2] to-[#50b6ff] p-2">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium text-white">
-            {nodeData.label || 'Agent'}
-          </h3>
-          <div className={`h-3 w-3 rounded-full ${getStatusColor()}`} />
-        </div>
+    <div className="w-64 rounded-md border border-border bg-card p-4 shadow-md">
+      <Handle type="target" position={Position.Top} className="!bg-primary" />
+      <div className="-mx-4 -mt-4 mb-3 flex items-center justify-between rounded-t-md bg-gradient-to-r from-[#57ecb2] to-[#50b6ff] p-2">
+        <input
+          type="text"
+          value={nodeData.label}
+          onChange={handleLabelChange}
+          className="nodrag nopan bg-transparent text-sm font-medium text-white focus:outline-none"
+        />
+        <div
+          className={`ml-2 h-3 w-3 rounded-full ${getStatusColor()}`}
+          title={`Status: ${nodeData.status || 'idle'}`}
+        />
       </div>
-
-      {/* Content */}
-      <div className="flex flex-col gap-2 p-3">
-        {/* Provider & Model */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Provider:</span>
-            <span className="text-xs font-medium">
-              {nodeData.provider || 'Not set'}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Model:</span>
-            <span className="text-xs font-medium">
-              {nodeData.model || 'Not set'}
-            </span>
-          </div>
-        </div>
-
-        {/* Edit button */}
-        <button className="mt-2 w-full rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground transition-colors hover:bg-secondary/90">
-          Edit Configuration
-        </button>
+      <div className="text-xs">
+        <p>
+          <span className="text-muted-foreground">Provider:</span>{' '}
+          {nodeData.provider || 'Not set'}
+        </p>
+        <p>
+          <span className="text-muted-foreground">Model:</span>{' '}
+          {nodeData.model || 'Not set'}
+        </p>
+        {nodeData.prompt && (
+          <p className="mt-1 truncate" title={nodeData.prompt}>
+            <span className="text-muted-foreground">Prompt:</span>{' '}
+            {nodeData.prompt}
+          </p>
+        )}
+        {nodeData.output && (
+          <p className="mt-1 truncate" title={nodeData.output}>
+            <span className="text-muted-foreground">Output:</span>{' '}
+            {nodeData.output}
+          </p>
+        )}
       </div>
-
-      {/* Bottom connection handle */}
       <Handle
         type="source"
         position={Position.Bottom}
-        className="h-3 w-3 bg-blue-500"
+        className="!bg-primary"
       />
     </div>
   )

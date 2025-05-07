@@ -2,6 +2,8 @@
 
 import ClientAuthButton from '@/components/ClientAuthButton'
 import ThemeToggle from '@/components/ThemeToggle'
+import MindMapProvider from '@/components/mindmap/MindMapProvider'
+import MindMapCanvas from '@/components/mindmap/MindMapCanvas'
 
 export default function Home() {
   return (
@@ -14,18 +16,10 @@ export default function Home() {
         <ThemeToggle />
       </div>
 
-      <div className="flex w-full flex-1 items-center justify-center">
-        <div className="max-w-md p-8 text-center">
-          <h2 className="mb-4 text-2xl font-bold">Mind Map Coming Soon</h2>
-          <p className="mb-6">
-            We&apos;re working on implementing the interactive mind map for AI
-            agent workflows.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            This page will feature a React Flow canvas where you can create,
-            connect, and configure AI agent nodes.
-          </p>
-        </div>
+      <div className="w-full flex-1">
+        <MindMapProvider>
+          <MindMapCanvas />
+        </MindMapProvider>
       </div>
 
       <footer className="w-full justify-center border-t border-t-foreground/10 p-4 text-center text-xs">
