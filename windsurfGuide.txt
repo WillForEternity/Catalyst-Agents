@@ -1,0 +1,272 @@
+Catalyst-Agents: Development Context & Guide for Windsurf
+Project: Catalyst-Agents Repository: https://github.com/WillForEternity/Catalyst-Agents Goal: Build a full-stack web application using Next.js and Supabase where users can visually create, manage, and execute workflows composed of interconnected AI agents (LLMs). The core interface will be an interactive mind-map.
+1. Core Technologies & Stack:
+* Framework: Next.js 14 (App Router) - Used for frontend and backend API routes.
+* Backend & Database: Supabase
+    * Authentication (supabase-ssr for seamless integration)
+    * PostgreSQL Database (for storing user data, API keys, mind-maps)
+    * Row Level Security (RLS) is heavily used for data security.
+* UI:
+    * Tailwind CSS (Utility-first styling)
+    * shadcn/ui (Pre-built accessible components)
+    * React Flow (@xyflow/react) - For the interactive mind-map canvas.
+* State Management:
+    * Zustand (For managing React Flow node/edge state client-side)
+    * TanStack Query v5 (Pre-configured for client-side data fetching/caching, especially for Supabase interactions like saving/loading maps).
+* Language: TypeScript
+* Package Manager: pnpm
+* LLM Interaction:
+    * LangChain.js (langchain, @langchain/openai, etc.) - Preferred abstraction layer for LLM calls.
+    * Direct fetch calls to LLM provider APIs (as a fallback or alternative).
+* Deployment: Vercel
+2. Project Structure Overview:
+* app/: Core application directory using Next.js App Router conventions.
+    * app/layout.tsx: Root layout.
+    * app/page.tsx: Landing page/main entry.
+    * app/auth/: Routes related to authentication (handled by Supabase starter).
+    * app/mindmap/page.tsx: (To be created) The main page containing the React Flow canvas.
+    * app/api/: Backend API routes.
+        * app/api/llm/[provider]/route.ts: (To be created) Secure server-side proxy to call LLMs.
+        * app/api/run-workflow/route.ts: (To be created) Server-side route to execute a mind-map workflow.
+        * (Other API routes as needed, e.g., for secure key management if encryption added)
+* components/: Reusable React components (especially shadcn/ui components).
+* lib/: Utility functions, Supabase client setup, potentially LangChain setup.
+* styles/: Global CSS.
+* public/: Static assets (images, etc.).
+* .env.local: Environment variables (Supabase keys - NEVER COMMIT).
+* supabase/migrations/: (If using Supabase local dev/migrations) Database schema changes.
+3. Key Features & Modules (Development Focus):
+* A. User Authentication:
+    * Status: Mostly complete via SupaNext starter.
+    * Needs: Ensure login/logout flows work correctly with the mind-map page. Protect relevant pages/API routes.
+* B. Secure API Key Management:
+    * Goal: Users securely store their LLM API keys (OpenAI, Anthropic, etc.). Keys must never be exposed client-side after initial input.
+    * DB Table: api_keys (schema defined in Step 6 of setup tutorial, RLS enabled).
+    * Needs:
+        * Frontend UI (e.g., a settings page or modal) for users to input/manage their keys (select provider, paste key).
+        * Client-side logic using Supabase client (insert/update/delete) to save keys to the api_keys table (RLS ensures they only affect their own).
+        * (Future Enhancement): Server-side encryption/decryption of keys before storing/retrieving from the DB via a dedicated API route, rather than storing plain text.
+* C. Mind-Map UI (React Flow):
+    * Goal: Interactive canvas for building agent workflows.
+    * File: app/mindmap/page.tsx
+    * Needs:
+        * Initialize React Flow canvas, controls, background.
+        * Use Zustand store (useStore) to manage nodes and edges state.
+        * Implement adding new "Agent" nodes (button click).
+        * Implement connecting nodes with edges (onConnect).
+        * Implement basic node movement/selection/deletion (onNodesChange, onEdgesChange).
+        * Define NodeData interface (e.g., { label: string, provider?: string, model?: string, prompt?: string, status?: string, output?: string }).
+* D. Agent Node Configuration:
+    * Goal: Allow users to configure settings for each agent node on the canvas.
+    * Needs:
+        * UI mechanism to edit node data (e.g., clicking a node opens a sidebar, modal, or inline editor).
+        * Form elements within that UI to set:
+            * Agent Name/Label
+            * LLM Provider (Dropdown: OpenAI, Anthropic, etc.)
+            * Specific Model (Dropdown/Text input based on provider)
+            * Prompt Template (Text area, potentially with variables like {input} from connected nodes).
+        * Logic to update the specific node's data in the Zustand store when settings are changed.
+* E. Secure LLM Proxy API:
+    * Goal: Server-side route to safely execute LLM calls using the user's stored API key.
+    * File: app/api/llm/[provider]/route.ts
+    * Needs:
+        * Implement POST handler.
+        * Receive prompt, provider, and options (like model name) from request body.
+        * Use createClient with SUPABASE_SERVICE_ROLE_KEY to bypass RLS.
+        * Get the current user_id from Supabase Auth (server-side).
+        * Query the api_keys table for the api_key matching user_id and provider.
+        * Instantiate LangChain LLM (e.g., new OpenAI(...)) with the fetched key or use fetch for direct API call.
+        * Execute the LLM call with the provided prompt.
+        * Return the LLM's text response as JSON ({ "text": "..." }).
+        * Implement robust error handling (auth failure, key not found, LLM API error).
+* F. Workflow Execution Engine:
+    * Goal: Take a mind-map graph and execute the agent sequence.
+    * File: app/api/run-workflow/route.ts
+    * Needs:
+        * Implement POST handler receiving the graph (nodes, edges) from the client.
+        * Graph Traversal: Determine execution order (e.g., using topological sort if it's a DAG, or handle simpler linear/branching flows). Identify starting nodes.
+        * Context Passing: For each node, construct its input prompt by potentially combining its configured prompt template with the output from its parent node(s) via edges.
+        * LLM Calls: For each agent node, call the /api/llm/[provider] proxy route with the constructed prompt and node configuration.
+        * State Management: Keep track of node execution status (pending, running, completed, error) and store outputs.
+        * Results Handling: Send results back to the client. Options:
+            * Simple: Wait for all nodes, return final output(s).
+            * Better: Stream results back (using Server-Sent Events or WebSockets) so the UI can update node statuses/outputs in real-time.
+* G. Mind-Map Persistence:
+    * Goal: Save and load user-created mind-map workflows.
+    * DB Table: mindmaps (schema defined in Step 9 of setup tutorial, RLS enabled). Columns: id, user_id, name, graph (JSONB), created_at, updated_at.
+    * Needs:
+        * Frontend UI ("Save", "Load" buttons/menu).
+        * "Save" logic: Get current nodes & edges from Zustand, use client-side Supabase client (insert or updatevia TanStack Query mutation) to save { nodes, edges } JSON to the graph column in the mindmapstable for the logged-in user. Prompt for a name.
+        * "Load" logic: Use client-side Supabase client (select via TanStack Query) to fetch list of user's saved maps. Allow selection. On select, fetch the specific map's graph data, parse the JSON, and update the Zustand store (set({ nodes: loadedNodes, edges: loadedEdges })) to render it on the canvas.
+4. Data Models (Key Structures):
+      // --- Supabase Tables (Conceptual - see SQL for exact definitions) ---
+// table api_keys { id, user_id, provider, api_key }
+// table mindmaps { id, user_id, name, graph (jsonb), created_at, updated_at }
+
+// --- React Flow / Zustand State ---
+interface NodeData {
+  label: string;        // User-defined name for the node
+  provider?: 'openai' | 'anthropic' | string; // Selected LLM provider
+  model?: string;        // Specific model name (e.g., 'gpt-4', 'claude-3-opus')
+  prompt?: string;       // Prompt template (may include variables like {input})
+  status?: 'idle' | 'running' | 'completed' | 'error'; // Execution status
+  output?: string;       // Result from the LLM execution
+  // Add other config/state as needed
+}
+
+// Node type from @xyflow/react, using our custom data
+import { Node } from '@xyflow/react';
+type AgentNode = Node<NodeData>;
+
+// Edge type from @xyflow/react
+import { Edge } from '@xyflow/react';
+// Potentially add EdgeData if edges need to carry info (e.g., context mapping rules)
+// interface EdgeData { ... }
+// type AgentEdge = Edge<EdgeData>;
+
+// Zustand Store Structure
+interface StoreState {
+  nodes: AgentNode[];
+  edges: Edge[]; // Or AgentEdge[] if using EdgeData
+  // ... actions: addNode, onNodesChange, onEdgesChange, onConnect, updateNodeData, setNodes, setEdges ...
+}
+
+// API Request/Response Payloads (Conceptual)
+// POST /api/llm/[provider] -> body: { prompt: string, options?: { model?: string, ... } } -> response: { text: string } | { error: string }
+// POST /api/run-workflow -> body: { nodes: AgentNode[], edges: Edge[] } -> response: { finalOutputs: any } | (Streaming updates)
+// GET /api/mindmaps -> response: { id: string, name: string, updated_at: string }[]
+// POST /api/mindmaps -> body: { name: string, graph: { nodes: AgentNode[], edges: Edge[] } } -> response: { id: string, ... }
+    
+
+5. Guiding Principles & Constraints:
+* Security First: Absolutely no LLM API keys exposed on the client-side. All LLM calls must go through the secure server-side proxy. Leverage Supabase RLS thoroughly.
+* Modularity: Create reusable React components (components/) and utility functions (lib/).
+* Type Safety: Use TypeScript effectively. Define interfaces for data structures.
+* User Experience: Aim for a smooth, interactive mind-map experience. Provide visual feedback during workflow execution (status updates).
+* Atomic Commits: Keep Git commits focused on single features or fixes.
+* Default to Starter Config: Utilize pre-configured tools like ESLint, Prettier, TanStack Query unless there's a strong reason not to.
+6. How to Use This Document (Instructions for Windsurf LLM):
+* Refer to this document for context about the project's goals, tech stack, structure, and specific feature requirements.
+* When asked to implement a feature (e.g., "Implement the API key saving form"), consult the relevant section (e.g., "B. Secure API Key Management") and the "Data Models" section.
+* Identify the relevant files to modify or create based on the "Project Structure Overview."
+* Use the specified libraries and patterns (React Flow, Zustand, Supabase client, LangChain, Next.js API routes).
+* Adhere to the "Guiding Principles," especially regarding security.
+* If requirements are unclear, ask clarifying questions based on the context provided here.
+* Help organize tasks by breaking down features from Section 3 into smaller, implementable steps.
+
+
+Desired Functionality:
+
+# LLM Agent Interface with Mind Map Prompt Engineering
+
+This UI is a sophisticated interface for an LLM (Large Language Model) agent that allows users to visually design prompt engineering workflows through mind maps. The design follows a sleek, modern aesthetic with a dark theme, gradient accents, and the Kanit font family.
+
+## Overall Layout
+
+The interface has a clean, minimalist structure with three main sections:
+
+1. A slim header at the top
+2. A full-screen mind map canvas in the center
+3. A collapsible chat panel at the bottom
+
+
+## Color Scheme
+
+The UI uses a carefully selected color palette inspired by the reference images:
+
+- Primary background: Deep black (`#101010`)
+- Secondary background: Dark gray (`#2c2c2c`)
+- Accent gradient: Teal to blue gradient (`#57ecb2` to `#50b6ff`)
+- Text: White/light gray for maximum contrast
+- Card backgrounds: Slightly lighter than the main background with subtle transparency
+
+
+## Header
+
+The header is a slim, elegant bar that contains:
+
+- **Logo**: A brain icon with "Mind Flow" text rendered with the gradient effect
+- **Search**: A centered search bar that expands when clicked
+- **Action buttons**:
+
+- New Project button with the teal-blue gradient
+- Theme toggle for switching between light and dark modes
+- Menu button that opens a settings panel
+
+
+
+
+
+## Project Info Bar
+
+Below the header is a project information bar that displays:
+
+- **Project title**: Editable project name with an edit button
+- **Last edited**: Timestamp showing when the project was last modified
+- **Save button**: For manually saving the current project state
+
+
+## Mind Map Canvas
+
+The mind map canvas occupies most of the screen and features:
+
+- **Interactive nodes**: Draggable, connectable cards representing different components of a prompt
+- **Node types**: Different node types (prompt, system, format, example) with distinct gradient headers
+- **Connections**: Animated paths between nodes showing relationships
+- **Controls**: Minimal floating controls for zoom, pan, and fullscreen
+- **Node actions**: Buttons for adding new nodes and deleting selected nodes
+
+
+### Node Design
+
+Each node is a card with:
+
+- **Gradient header**: Color-coded by node type (main prompt uses the teal-blue gradient)
+- **Title**: The node's label/title with an appropriate icon
+- **Content**: The actual prompt text or instructions
+- **Edit button**: For modifying the node's content
+- **Connection points**: Small handles at the top and bottom for creating connections
+
+
+## Chat Panel
+
+The chat panel is a collapsible interface at the bottom of the screen:
+
+- **Collapsed state**: Shows just a header bar with the assistant name
+- **Expanded state**: Reveals a full chat interface with message history
+- **Model selector**: Dropdown to choose between different LLM models (OpenAI, Anthropic, Google Gemini)
+- **Message display**: Shows conversation history with user and assistant messages
+- **Input area**: Text area for typing messages with send and magic wand buttons
+
+
+## Animations and Effects
+
+The UI incorporates subtle animations that enhance the experience:
+
+- **Transitions**: Smooth transitions when expanding/collapsing panels
+- **Hover effects**: Subtle scaling and shadow changes on interactive elements
+- **Typing indicators**: Animated dots when the AI is generating a response
+- **Connection animations**: Animated paths between mind map nodes
+- **Backdrop blur**: Applied to overlays and panels for depth
+
+
+## Responsive Design
+
+The interface adapts to different screen sizes:
+
+- **Desktop**: Full layout with all features visible
+- **Tablet**: Adjusted spacing and some elements collapse into menus
+- **Mobile**: Header simplifies, chat panel takes more screen space when active
+
+
+## Functionality
+
+The UI supports several key workflows:
+
+1. **Mind map creation**: Users can create, edit, and connect nodes to design prompt structures
+2. **Chat interaction**: Users can chat with the AI using the designed prompts
+3. **API key management**: Users can add and validate API keys for different AI providers
+4. **Project management**: Users can save, name, and organize their mind map projects
+
+
+This elegant, purpose-built interface combines visual thinking tools with conversational AI, creating a powerful environment for prompt engineering and LLM interaction.
