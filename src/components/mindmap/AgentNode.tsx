@@ -24,23 +24,23 @@ const AgentNode = memo(({ id, data }: NodeProps<Node<StoreNodeData>>) => {
     }
   }
 
-  // Color scheme inspired by the shared image
+  // Color scheme inspired by the shared image with gradients
   const getNodeTypeStyles = () => {
     switch (nodeData.type) {
       case 'input':
-        return 'from-[#d7f9a9] to-[#d7f9a9]' // Light green
+        return 'from-[#d7f9a9] to-[#b8e986]' // Light green gradient
       case 'agent':
-        return 'from-[#6dd3a6] to-[#6dd3a6]' // Medium green
+        return 'from-[#6dd3a6] to-[#4db38a]' // Medium green gradient
       case 'prompt':
-        return 'from-[#57cec3] to-[#57cec3]' // Teal
+        return 'from-[#57cec3] to-[#3aafa3]' // Teal gradient
       case 'conditional':
-        return 'from-[#5aa9e6] to-[#5aa9e6]' // Blue
+        return 'from-[#5aa9e6] to-[#3d8cd0]' // Blue gradient
       case 'tool-call':
-        return 'from-[#e15a97] to-[#e15a97]' // Pink
+        return 'from-[#e15a97] to-[#c93d7c]' // Pink gradient
       case 'output':
-        return 'from-[#ff9e7d] to-[#ff9e7d]' // Orange (added as an extra color)
+        return 'from-[#ff9e7d] to-[#ff7d52]' // Orange gradient
       default:
-        return 'from-[#6dd3a6] to-[#6dd3a6]' // Default to medium green
+        return 'from-[#6dd3a6] to-[#4db38a]' // Default to medium green gradient
     }
   }
 

@@ -13,13 +13,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 // Node type definitions with icons, colors, and default configurations
-// Color scheme inspired by the shared image
+// Color scheme inspired by the shared image with gradients
 const nodeTypes = [
   {
     id: 'input',
     label: 'Input Node',
     description: 'Starting point for data',
-    color: 'bg-[#d7f9a9]', // Light green
+    color: 'bg-gradient-to-r from-[#d7f9a9] to-[#b8e986]', // Light green gradient
     defaultData: {
       type: 'input',
       provider: '',
@@ -36,7 +36,7 @@ const nodeTypes = [
     id: 'agent',
     label: 'Agent Node',
     description: 'Process with AI model',
-    color: 'bg-[#6dd3a6]', // Medium green
+    color: 'bg-gradient-to-r from-[#6dd3a6] to-[#4db38a]', // Medium green gradient
     defaultData: {
       type: 'agent',
       provider: 'openai',
@@ -53,7 +53,7 @@ const nodeTypes = [
     id: 'prompt',
     label: 'Prompt Node',
     description: 'Custom system prompt',
-    color: 'bg-[#57cec3]', // Teal
+    color: 'bg-gradient-to-r from-[#57cec3] to-[#3aafa3]', // Teal gradient
     defaultData: {
       type: 'prompt',
       provider: '',
@@ -70,7 +70,7 @@ const nodeTypes = [
     id: 'conditional',
     label: 'Conditional Node',
     description: 'Branch based on conditions',
-    color: 'bg-[#5aa9e6]', // Blue
+    color: 'bg-gradient-to-r from-[#5aa9e6] to-[#3d8cd0]', // Blue gradient
     defaultData: {
       type: 'conditional',
       provider: '',
@@ -88,7 +88,7 @@ const nodeTypes = [
     id: 'tool-call',
     label: 'Tool Call Node',
     description: 'Execute external tools',
-    color: 'bg-[#e15a97]', // Pink
+    color: 'bg-gradient-to-r from-[#e15a97] to-[#c93d7c]', // Pink gradient
     defaultData: {
       type: 'tool-call',
       provider: '',
@@ -106,7 +106,7 @@ const nodeTypes = [
     id: 'output',
     label: 'Output Node',
     description: 'Final result',
-    color: 'bg-[#ff9e7d]', // Orange
+    color: 'bg-gradient-to-r from-[#ff9e7d] to-[#ff7d52]', // Orange gradient
     defaultData: {
       type: 'output',
       provider: '',
