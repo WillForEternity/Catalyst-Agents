@@ -2,6 +2,7 @@
 
 import { useState, ChangeEvent } from 'react'
 import { Button } from '@/components/ui/button'
+import { Settings } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,12 @@ import {
 } from '@/components/ui/select'
 
 // Supported providers - extend this as needed
-const SUPPORTED_PROVIDERS = [{ value: 'openai', label: 'OpenAI' }]
+const SUPPORTED_PROVIDERS = [
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'google', label: 'Google AI' },
+  { value: 'cohere', label: 'Cohere' },
+]
 
 export function ApiKeyManager() {
   const [isOpen, setIsOpen] = useState(false)
@@ -35,6 +41,33 @@ export function ApiKeyManager() {
     type: 'success' | 'error'
     text: string
   } | null>(null)
+  const [savedKeys, setSavedKeys] = useState<
+    { provider: string; hasKey: boolean }[]
+  >([])
+
+  // Fetch saved keys on component mount
+  const fetchSavedKeys = async () => {
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'GET',
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setSavedKeys(result.data || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch saved API keys:', error)
+    }
+  }
+
+  // Load saved keys when dialog opens
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    if (open) {
+      fetchSavedKeys()
+    }
+  }
 
   const handleSaveKey = async () => {
     setIsLoading(true)
@@ -57,8 +90,9 @@ export function ApiKeyManager() {
           text: result.message || 'API Key saved successfully!',
         })
         setApiKey('') // Clear input on success
-        // Optionally close dialog after a delay
-        // setTimeout(() => setIsOpen(false), 1500);
+
+        // Update the saved keys list
+        fetchSavedKeys()
       } else {
         setMessage({
           type: 'error',
@@ -77,18 +111,45 @@ export function ApiKeyManager() {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline">Manage API Keys</Button>
+        <Button
+          variant="outline"
+          className="flex items-center justify-center gap-2"
+        >
+          <Settings className="h-4 w-4" />
+          Manage API Keys
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Manage API Keys</DialogTitle>
           <DialogDescription>
             Add and manage your API keys for LLM providers here. Your keys are
-            stored securely.
+            stored securely and encrypted at rest.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Display saved keys */}
+        {savedKeys.length > 0 && (
+          <div className="mb-4">
+            <h3 className="mb-2 text-sm font-medium">Saved API Keys:</h3>
+            <div className="space-y-2">
+              {savedKeys.map((key) => (
+                <div
+                  key={key.provider}
+                  className="flex items-center justify-between rounded-md bg-secondary/20 p-2 text-sm"
+                >
+                  <span className="font-medium">
+                    {key.provider.charAt(0).toUpperCase() +
+                      key.provider.slice(1)}
+                  </span>
+                  <span className="text-xs text-green-500">✓ Saved</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="provider" className="text-right">

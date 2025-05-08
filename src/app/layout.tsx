@@ -3,7 +3,7 @@ import ThemeProvider from '@/providers/ThemeProvider'
 import NextTopLoader from 'nextjs-toploader'
 import { Analytics } from '@vercel/analytics/react'
 import './globals.css'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+// Removed ReactQueryDevtools import
 import ReactQueryProvider from '@/providers/ReactQueryProvider'
 
 const defaultUrl = process.env.VERCEL_URL
@@ -42,7 +42,7 @@ export default function RootLayout({
               <Analytics />{' '}
               {/* ^^ remove this if you are not deploying to vercel. See more at https://vercel.com/docs/analytics  */}
             </main>
-            <ReactQueryDevtools initialIsOpen={false} />
+            {/* ReactQueryDevtools removed */}
           </ReactQueryProvider>
         </ThemeProvider>
       </body>

@@ -45,15 +45,23 @@ const AgentNode = memo(({ id, data }: NodeProps<Node<StoreNodeData>>) => {
   }
 
   return (
-    <div className="w-48 rounded-md border border-border bg-card shadow-md">
-      <Handle type="target" position={Position.Top} className="!bg-primary" />
+    <div className="relative w-48 rounded-md border border-border bg-card shadow-md">
+      {/* Only show target handle if not an input node */}
+      {nodeData.type !== 'input' && (
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!left-[-8px] !h-3 !w-3 !border-2 !border-background !bg-primary"
+          id={`target-${id}`}
+        />
+      )}
       <div
         className={cn(
           'flex items-center justify-between rounded-t-md bg-gradient-to-r p-2',
           getNodeTypeStyles(),
         )}
       >
-        <span className="nodrag nopan flex-grow text-sm font-medium text-white">
+        <span className="flex-grow text-sm font-medium text-white">
           {nodeData.label}
         </span>
         <div
@@ -89,11 +97,15 @@ const AgentNode = memo(({ id, data }: NodeProps<Node<StoreNodeData>>) => {
           </p>
         )}
       </div>
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!bg-primary"
-      />
+      {/* Only show source handle if not an output node */}
+      {nodeData.type !== 'output' && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!right-[-8px] !h-3 !w-3 !border-2 !border-background !bg-primary"
+          id={`source-${id}`}
+        />
+      )}
     </div>
   )
 })

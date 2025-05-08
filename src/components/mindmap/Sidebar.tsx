@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input'
 export function Sidebar() {
   const { nodes, addNode, updateNodeData, propagateOutput, onNodesChange } =
     useMindMapStore()
-  const [showApiKeys, setShowApiKeys] = useState(false)
+  // Removed showApiKeys state as we're integrating ApiKeyManager directly
   // No need for reactFlowInstance for now
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
@@ -171,24 +171,11 @@ export function Sidebar() {
   }, [editingNodeId])
 
   return (
-    <div className="flex h-full flex-col border-l border-border bg-card">
-      <div className="flex flex-col space-y-4 p-4">
+    <div className="flex h-full flex-col overflow-hidden bg-card">
+      <div className="flex flex-col space-y-4 border-b border-border p-4">
         <NodeTypeSelector />
 
-        <Button
-          variant="outline"
-          onClick={() => setShowApiKeys(!showApiKeys)}
-          className="flex items-center justify-center gap-2"
-        >
-          <Settings className="h-4 w-4" />
-          Manage API Keys
-        </Button>
-
-        {showApiKeys && (
-          <div className="rounded-md border border-border p-4">
-            <ApiKeyManager />
-          </div>
-        )}
+        <ApiKeyManager />
       </div>
 
       <Tabs defaultValue="nodes" className="flex-1">
