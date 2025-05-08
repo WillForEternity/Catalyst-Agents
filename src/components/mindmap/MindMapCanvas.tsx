@@ -9,8 +9,6 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from '@/components/ui/resizable'
-import { ArrowLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 
 // Import React Flow styles
 import '@xyflow/react/dist/style.css'
@@ -20,11 +18,12 @@ const nodeTypes = {
   agent: AgentNode,
 }
 
+// We keep the interface but make the prop optional since we're not using it
 interface MindMapCanvasProps {
-  onBack: () => void
+  onBack?: () => void
 }
 
-export default function MindMapCanvas({ onBack }: MindMapCanvasProps) {
+export default function MindMapCanvas({}: MindMapCanvasProps) {
   // Use the Zustand store
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect } =
     useMindMapStore()
@@ -39,16 +38,7 @@ export default function MindMapCanvas({ onBack }: MindMapCanvasProps) {
     <ResizablePanelGroup direction="horizontal" className="h-full">
       <ResizablePanel defaultSize={75} minSize={30}>
         <div className="relative h-full w-full">
-          <div className="absolute left-4 top-4 z-10 flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBack}
-              className="flex items-center gap-1 text-sm font-medium"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
+          <div className="absolute left-4 top-4 z-10">
             <h1 className="text-xl font-bold">Catalyst Agents</h1>
           </div>
 
