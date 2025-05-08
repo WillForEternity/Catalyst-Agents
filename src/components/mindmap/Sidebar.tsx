@@ -2,20 +2,26 @@
 
 import { useMindMapStore, NodeData } from '@/store/mindmap-store'
 import { Button } from '@/components/ui/button'
-import { Plus, Settings } from 'lucide-react'
+import { Settings, Trash2, Edit, Check } from 'lucide-react'
+import { NodeTypeSelector } from './NodeTypeSelector'
 import { ApiKeyManager } from '@/components/settings/ApiKeyManager'
 import { v4 as uuidv4 } from 'uuid'
-import { useState } from 'react'
+import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import { Node } from '@xyflow/react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AgentConfigPopover } from './AgentConfigPopover'
+import { Input } from '@/components/ui/input'
 
 export function Sidebar() {
-  const { nodes, addNode, updateNodeData } = useMindMapStore()
+  const { nodes, addNode, updateNodeData, propagateOutput, onNodesChange } =
+    useMindMapStore()
   const [showApiKeys, setShowApiKeys] = useState(false)
   // No need for reactFlowInstance for now
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
+  const [editingNodeName, setEditingNodeName] = useState<string>('')
+  const editInputRef = useRef<HTMLInputElement>(null)
 
   // Find the selected node
   const selectedNode = nodes.find((node) => node.id === selectedNodeId)
@@ -96,6 +102,9 @@ export function Sidebar() {
       }
 
       updateNodeData(selectedNode.id, { status: 'completed' })
+
+      // Propagate the output to connected nodes
+      propagateOutput(selectedNode.id, accumulatedOutput)
     } catch (error: any) {
       console.error('Failed to execute agent:', error)
       updateNodeData(selectedNode.id, {
@@ -118,20 +127,53 @@ export function Sidebar() {
     }
   }
 
+  // Delete a node
+  const handleDeleteNode = (nodeId: string) => {
+    onNodesChange([{ type: 'remove', id: nodeId }])
+    if (selectedNodeId === nodeId) {
+      setSelectedNodeId(null)
+    }
+  }
+
+  // Start editing a node name
+  const handleStartEditingNode = (nodeId: string, currentName: string) => {
+    setEditingNodeId(nodeId)
+    setEditingNodeName(currentName)
+  }
+
+  // Save the edited node name
+  const handleSaveNodeName = () => {
+    if (editingNodeId && editingNodeName.trim()) {
+      updateNodeData(editingNodeId, { label: editingNodeName.trim() })
+      setEditingNodeId(null)
+    }
+  }
+
+  // Handle input change for node name editing
+  const handleNodeNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setEditingNodeName(e.target.value)
+  }
+
+  // Handle pressing Enter to save the node name
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSaveNodeName()
+    } else if (e.key === 'Escape') {
+      setEditingNodeId(null)
+    }
+  }
+
+  // Focus the input when editing starts
+  useEffect(() => {
+    if (editingNodeId && editInputRef.current) {
+      editInputRef.current.focus()
+    }
+  }, [editingNodeId])
+
   return (
     <div className="flex h-full flex-col border-l border-border bg-card">
-      <div className="border-b border-border p-4">
-        <h3 className="font-medium">Mind Flow Controls</h3>
-      </div>
-
       <div className="flex flex-col space-y-4 p-4">
-        <Button
-          onClick={handleAddNode}
-          className="flex items-center justify-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add Agent Node
-        </Button>
+        <NodeTypeSelector />
 
         <Button
           variant="outline"
@@ -163,28 +205,86 @@ export function Sidebar() {
               {nodes.map((node) => (
                 <div
                   key={node.id}
-                  className={`cursor-pointer rounded-md border p-3 transition-colors ${
+                  className={`rounded-md border p-3 transition-colors ${
                     selectedNodeId === node.id
                       ? 'border-primary bg-primary/10'
                       : 'border-border hover:border-primary/50'
                   }`}
-                  onClick={() => setSelectedNodeId(node.id)}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div
+                      className="flex flex-grow cursor-pointer items-center gap-2"
+                      onClick={() => setSelectedNodeId(node.id)}
+                    >
                       <div
                         className={`h-3 w-3 rounded-full ${getStatusColor(
                           node.data.status,
                         )}`}
                         title={`Status: ${node.data.status || 'idle'}`}
                       />
-                      <span className="font-medium">{node.data.label}</span>
+                      {editingNodeId === node.id ? (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            ref={editInputRef}
+                            value={editingNodeName}
+                            onChange={handleNodeNameChange}
+                            onKeyDown={handleKeyDown}
+                            className="h-6 py-0 text-sm"
+                            autoFocus
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={handleSaveNodeName}
+                          >
+                            <Check className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="font-medium">{node.data.label}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                        onClick={() =>
+                          handleStartEditingNode(node.id, node.data.label)
+                        }
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteNode(node.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground">
-                    <p>
-                      {node.data.provider} / {node.data.model}
-                    </p>
+                    <p>{node.data.type?.toUpperCase() || 'AGENT'}</p>
+                    {node.data.type === 'agent' && (
+                      <p>
+                        {node.data.provider} / {node.data.model}
+                      </p>
+                    )}
+                    {node.data.sourceNodeIds &&
+                      node.data.sourceNodeIds.length > 0 && (
+                        <p className="text-xs text-blue-500">
+                          Inputs: {node.data.sourceNodeIds.length}
+                        </p>
+                      )}
+                    {node.data.targetNodeIds &&
+                      node.data.targetNodeIds.length > 0 && (
+                        <p className="text-xs text-green-500">
+                          Outputs: {node.data.targetNodeIds.length}
+                        </p>
+                      )}
                   </div>
                 </div>
               ))}

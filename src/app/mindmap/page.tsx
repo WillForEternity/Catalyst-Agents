@@ -21,7 +21,7 @@ export default function MindMapPage() {
         >
           <span className="mr-2">←</span> Back to Home
         </button>
-        <h1 className="text-xl font-bold">Mind Flow</h1>
+        <h1 className="text-xl font-bold">Catalyst Agents</h1>
         <div className="w-24"></div> {/* Spacer for balance */}
       </div>
 
