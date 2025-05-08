@@ -40,9 +40,12 @@ export default function MindMapCanvas() {
     updateNodeData,
     addNode,
     propagateOutput,
+    setNodes,
+    setEdges,
   } = useMindMapStore()
 
-  const { activeMindMapId, saveMindMap } = useFileSystemStore()
+  const { activeMindMapId, saveMindMap, folders, createMindMap } =
+    useFileSystemStore()
   const [saveStatus, setSaveStatus] = useState<
     'saved' | 'saving' | 'error' | null
   >(null)
@@ -130,28 +133,33 @@ export default function MindMapCanvas() {
   }, [handleMouseMove, handleMouseUp])
 
   // Function to save the current state with status updates
-  const saveCurrentState = useCallback(() => {
-    if (!activeMindMapId || nodes.length === 0) return
+  const saveCurrentState = useCallback(async () => {
+    if (nodes.length === 0) return
+
+    // Ensure there's an active mindmap file
+    let fileId = activeMindMapId
+    if (!fileId) {
+      fileId = await createMindMap('default', getActiveMindMapName())
+    }
 
     setSaveStatus('saving')
-    return saveMindMap(activeMindMapId, nodes, edges)
-      .then(() => {
-        setSaveStatus('saved')
-        setLastSaved(new Date())
-        // Reset status after 3 seconds
-        setTimeout(() => setSaveStatus(null), 3000)
-      })
-      .catch((error) => {
-        console.error('Auto-save failed:', error)
-        setSaveStatus('error')
-        // Reset error status after 5 seconds
-        setTimeout(() => setSaveStatus(null), 5000)
-      })
-  }, [activeMindMapId, nodes, edges, saveMindMap])
+    try {
+      await saveMindMap(fileId, nodes, edges)
+      setSaveStatus('saved')
+      setLastSaved(new Date())
+      // Reset status after 3 seconds
+      setTimeout(() => setSaveStatus(null), 3000)
+    } catch (error) {
+      console.error('Auto-save failed:', error)
+      setSaveStatus('error')
+      // Reset error status after 5 seconds
+      setTimeout(() => setSaveStatus(null), 5000)
+    }
+  }, [activeMindMapId, nodes, edges, saveMindMap, createMindMap])
 
   // Auto-save mindmap when changes are made to nodes or edges
   useEffect(() => {
-    if (!activeMindMapId || nodes.length === 0) return
+    if (nodes.length === 0) return
 
     // Debounce save to avoid too many saves
     const debounceTimeout = setTimeout(() => {
@@ -161,11 +169,11 @@ export default function MindMapCanvas() {
     return () => {
       clearTimeout(debounceTimeout)
     }
-  }, [activeMindMapId, nodes, edges, saveCurrentState])
+  }, [nodes, edges, saveCurrentState])
 
   // Set up regular interval saves as a backup
   useEffect(() => {
-    if (!activeMindMapId) return
+    if (nodes.length === 0) return
 
     const autoSaveInterval = setInterval(() => {
       saveCurrentState()
@@ -174,7 +182,19 @@ export default function MindMapCanvas() {
     return () => {
       clearInterval(autoSaveInterval)
     }
-  }, [activeMindMapId, saveCurrentState])
+  }, [nodes, saveCurrentState])
+
+  // Load nodes/edges from persisted mindmap into ReactFlow store
+  useEffect(() => {
+    if (!activeMindMapId || !folders.length) return
+    const file = folders
+      .flatMap((f) => f.files)
+      .find((f) => f.id === activeMindMapId)
+    if (file) {
+      setNodes(file.nodes)
+      setEdges(file.edges)
+    }
+  }, [activeMindMapId, folders, setNodes, setEdges])
 
   // Override the original store methods to ensure saves are triggered
   const wrappedOnNodesChange = useCallback(
@@ -210,11 +230,15 @@ export default function MindMapCanvas() {
   )
 
   const wrappedAddNode = useCallback(
-    (node: Node<NodeData>) => {
+    async (node: Node<NodeData>) => {
+      // Ensure there's an active file to autosave into
+      if (!activeMindMapId) {
+        await createMindMap('default', getActiveMindMapName())
+      }
       addNode(node)
-      // The nodes state will update, which will trigger the useEffect above
+      // The nodes state will update, which will trigger the useEffect autosave
     },
-    [addNode],
+    [addNode, activeMindMapId, createMindMap],
   )
 
   const wrappedPropagateOutput = useCallback(
@@ -228,7 +252,7 @@ export default function MindMapCanvas() {
   return (
     <div ref={containerRef} className="relative flex h-full">
       <div
-        className="overflow-hidden rounded-xl border border-border/50 bg-background shadow-md"
+        className="overflow-hidden rounded-xl border border-border/30 bg-background/30 shadow-md"
         style={{ width: `calc(${leftPanelWidth}% - 4px)` }}
       >
         <ReactFlow
@@ -246,7 +270,9 @@ export default function MindMapCanvas() {
           proOptions={{ hideAttribution: true }} // Remove "powered by" labels
         >
           <Panel position="top-left" className="ml-2 mt-2 p-4">
-            <h1 className="text-xl font-bold">{getActiveMindMapName()}</h1>
+            <h1 className="font-sans text-xl font-bold">
+              {getActiveMindMapName()}
+            </h1>
           </Panel>
 
           {/* Autosave Status - Positioned in the top-right corner of the mindmap */}
@@ -295,7 +321,7 @@ export default function MindMapCanvas() {
       </div>
 
       <div
-        className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-md"
+        className="overflow-hidden rounded-xl border border-border/40 bg-card/40 shadow-md"
         style={{
           width: `calc(${100 - leftPanelWidth}% - 4px)`,
           marginLeft: '8px',

@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { useState, useRef, useEffect, ChangeEvent } from 'react'
 import { Node, NodeChange } from '@xyflow/react'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AgentConfigPopover } from './AgentConfigPopover'
 import { Input } from '@/components/ui/input'
@@ -184,7 +185,7 @@ export function Sidebar({
   }, [editingNodeId])
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-card">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-transparent">
       <div className="flex flex-col space-y-4 p-4">
         <NodeTypeSelector />
 
@@ -197,190 +198,211 @@ export function Sidebar({
       >
         <div className="px-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="nodes">Nodes</TabsTrigger>
-            <TabsTrigger value="output">Output</TabsTrigger>
+            <TabsTrigger
+              value="nodes"
+              className="bg-card/30 text-muted-foreground hover:bg-card/30"
+            >
+              Nodes
+            </TabsTrigger>
+            <TabsTrigger
+              value="output"
+              className="bg-card/40 text-muted-foreground hover:bg-card/30"
+            >
+              Output
+            </TabsTrigger>
           </TabsList>
         </div>
-        <ScrollArea className="flex-1 overflow-auto p-4">
-          <TabsContent value="nodes" className="p-0">
-            <h3 className="mb-2 text-sm font-medium">Available Nodes</h3>
-            {nodes.length > 0 ? (
-              <div className="space-y-2">
-                {nodes.map((node) => (
-                  <div
-                    key={node.id}
-                    className={`rounded-md border p-3 transition-colors ${
-                      selectedNodeId === node.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div
-                        className="flex flex-grow cursor-pointer items-center gap-2"
-                        onClick={() => setSelectedNodeId(node.id)}
-                      >
-                        <div
-                          className={`h-3 w-3 rounded-full ${getStatusColor(
-                            node.data.status,
-                          )}`}
-                          title={`Status: ${node.data.status || 'idle'}`}
-                        />
-                        {editingNodeId === node.id ? (
-                          <div className="flex items-center gap-1">
-                            <Input
-                              ref={editInputRef}
-                              value={editingNodeName}
-                              onChange={handleNodeNameChange}
-                              onKeyDown={handleKeyDown}
-                              className="h-6 py-0 text-sm"
-                              autoFocus
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={handleSaveNodeName}
-                            >
-                              <Check className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="font-medium">{node.data.label}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                          onClick={() =>
-                            handleStartEditingNode(node.id, node.data.label)
-                          }
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeleteNode(node.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      <p>{node.data.type?.toUpperCase() || 'AGENT'}</p>
-                      {node.data.type === 'agent' && (
-                        <p>
-                          {node.data.provider} / {node.data.model}
-                        </p>
-                      )}
-                      {node.data.sourceNodeIds &&
-                        node.data.sourceNodeIds.length > 0 && (
-                          <p className="text-xs text-blue-500">
-                            Inputs: {node.data.sourceNodeIds.length}
-                          </p>
-                        )}
-                      {node.data.targetNodeIds &&
-                        node.data.targetNodeIds.length > 0 && (
-                          <p className="text-xs text-green-500">
-                            Outputs: {node.data.targetNodeIds.length}
-                          </p>
-                        )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center p-4 text-center text-muted-foreground">
-                <div>
-                  <p>No nodes available</p>
-                  <p className="mt-1 text-xs">
-                    Use the "Add Node" button above to create a new node
-                  </p>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="output" className="p-0">
-            {selectedNode ? (
-              <>
-                <h3 className="mb-2 text-sm font-medium">Selected Node</h3>
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="px-4 pt-6">
+            <TabsContent value="nodes">
+              <h3 className="mb-2 text-sm font-medium">Created Nodes</h3>
+            </TabsContent>
+            <TabsContent value="output">
+              <h3 className="mb-2 text-sm font-medium">Selected Node</h3>
+            </TabsContent>
+            <Separator className="my-2" />
+          </div>
+          <ScrollArea className="flex-1 overflow-auto px-4 pb-4 pt-2">
+            <TabsContent value="nodes">
+              {nodes.length > 0 ? (
+                <div className="space-y-2">
+                  {nodes.map((node) => (
                     <div
-                      className={`h-3 w-3 rounded-full ${getStatusColor(
-                        selectedNode.data.status,
-                      )}`}
-                      title={`Status: ${selectedNode.data.status || 'idle'}`}
-                    />
-                    <span className="font-medium">
-                      {selectedNode.data.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <AgentConfigPopover
-                      nodeId={selectedNode.id}
-                      data={selectedNode.data}
-                      wrappedUpdateNodeData={wrappedUpdateNodeData}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleRunAgent}
-                      disabled={selectedNode.data.status === 'running'}
+                      key={node.id}
+                      className={`rounded-md border p-3 transition-colors ${
+                        selectedNodeId === node.id
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:border-primary/50'
+                      }`}
                     >
-                      Run
-                    </Button>
+                      <div className="flex items-center justify-between">
+                        <div
+                          className="flex flex-grow cursor-pointer items-center gap-2"
+                          onClick={() => setSelectedNodeId(node.id)}
+                        >
+                          <div
+                            className={`h-3 w-3 rounded-full ${getStatusColor(
+                              node.data.status,
+                            )}`}
+                            title={`Status: ${node.data.status || 'idle'}`}
+                          />
+                          {editingNodeId === node.id ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                ref={editInputRef}
+                                value={editingNodeName}
+                                onChange={handleNodeNameChange}
+                                onKeyDown={handleKeyDown}
+                                className="h-6 py-0 text-sm"
+                                autoFocus
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={handleSaveNodeName}
+                              >
+                                <Check className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="font-medium">
+                              {node.data.label}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                            onClick={() =>
+                              handleStartEditingNode(node.id, node.data.label)
+                            }
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteNode(node.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        <p>{node.data.type?.toUpperCase() || 'AGENT'}</p>
+                        {node.data.type === 'agent' && (
+                          <p>
+                            {node.data.provider} / {node.data.model}
+                          </p>
+                        )}
+                        {node.data.sourceNodeIds &&
+                          node.data.sourceNodeIds.length > 0 && (
+                            <p className="text-xs text-blue-500">
+                              Inputs: {node.data.sourceNodeIds.length}
+                            </p>
+                          )}
+                        {node.data.targetNodeIds &&
+                          node.data.targetNodeIds.length > 0 && (
+                            <p className="text-xs text-green-500">
+                              Outputs: {node.data.targetNodeIds.length}
+                            </p>
+                          )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center p-4 text-muted-foreground">
+                  <div>
+                    <p>No nodes created</p>
+                    <p className="mt-1 text-xs">
+                      Use the "Add Node" button above to create a new node
+                    </p>
                   </div>
                 </div>
-                <div className="mb-4 space-y-2 text-sm">
-                  <p>
-                    <span className="text-muted-foreground">Provider:</span>{' '}
-                    {selectedNode.data.provider || 'Not set'}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Model:</span>{' '}
-                    {selectedNode.data.model || 'Not set'}
-                  </p>
-                  {selectedNode.data.prompt && (
-                    <div>
-                      <span className="text-muted-foreground">Prompt:</span>
-                      <p className="mt-1 rounded-md bg-secondary/20 p-2 text-xs">
-                        {selectedNode.data.prompt}
-                      </p>
+              )}
+            </TabsContent>
+            <TabsContent value="output">
+              {selectedNode ? (
+                <>
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`h-3 w-3 rounded-full ${getStatusColor(
+                          selectedNode.data.status,
+                        )}`}
+                        title={`Status: ${selectedNode.data.status || 'idle'}`}
+                      />
+                      <span className="font-medium">
+                        {selectedNode.data.label}
+                      </span>
                     </div>
-                  )}
-                  {selectedNode.data.input && (
-                    <div>
-                      <span className="text-muted-foreground">Input:</span>
-                      <p className="mt-1 rounded-md bg-secondary/20 p-2 text-xs">
-                        {selectedNode.data.input}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <AgentConfigPopover
+                        nodeId={selectedNode.id}
+                        data={selectedNode.data}
+                        wrappedUpdateNodeData={wrappedUpdateNodeData}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleRunAgent}
+                        disabled={selectedNode.data.status === 'running'}
+                      >
+                        Run
+                      </Button>
                     </div>
-                  )}
-                </div>
-                {selectedNode.data.output ? (
-                  <>
-                    <h4 className="mb-2 font-medium">Output:</h4>
-                    <pre className="whitespace-pre-wrap rounded-md bg-secondary/20 p-4 text-xs">
-                      {selectedNode.data.output}
-                    </pre>
-                  </>
-                ) : (
-                  <div className="flex items-center justify-center text-muted-foreground">
-                    No output available. Run the agent to see results.
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="flex items-center justify-center p-4 text-muted-foreground">
-                <p>Select a node to view its output</p>
-              </div>
-            )}
-          </TabsContent>
-        </ScrollArea>
+                  <div className="mb-4 space-y-2 text-sm">
+                    <p>
+                      <span className="text-muted-foreground">Provider:</span>{' '}
+                      {selectedNode.data.provider || 'Not set'}
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Model:</span>{' '}
+                      {selectedNode.data.model || 'Not set'}
+                    </p>
+                    {selectedNode.data.prompt && (
+                      <div>
+                        <span className="text-muted-foreground">Prompt:</span>
+                        <p className="mt-1 rounded-md bg-secondary/20 p-2 text-xs">
+                          {selectedNode.data.prompt}
+                        </p>
+                      </div>
+                    )}
+                    {selectedNode.data.input && (
+                      <div>
+                        <span className="text-muted-foreground">Input:</span>
+                        <p className="mt-1 rounded-md bg-secondary/20 p-2 text-xs">
+                          {selectedNode.data.input}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {selectedNode.data.output ? (
+                    <>
+                      <h4 className="mb-2 font-medium">Output:</h4>
+                      <pre className="whitespace-pre-wrap rounded-md bg-secondary/20 p-4 text-xs">
+                        {selectedNode.data.output}
+                      </pre>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center text-muted-foreground">
+                      No output available. Run the agent to see results.
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center justify-center p-4 text-muted-foreground">
+                  <p>Select a node to view its output</p>
+                </div>
+              )}
+            </TabsContent>
+          </ScrollArea>
+        </div>
       </Tabs>
     </div>
   )

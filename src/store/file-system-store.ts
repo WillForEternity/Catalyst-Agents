@@ -71,7 +71,16 @@ const findFolder = (folders: Folder[], folderId: string): Folder | null => {
 export const useFileSystemStore = create<FileSystemState>()(
   persist(
     (set, get) => ({
-      folders: [],
+      // Initialize with a default folder for mindmaps
+      folders: [
+        {
+          id: 'default',
+          name: 'My Mindmaps',
+          files: [],
+          subfolders: [],
+          isOpen: true,
+        },
+      ],
       activeMindMapId: null,
       isFileExplorerOpen: true,
 
@@ -338,14 +347,28 @@ export const useFileSystemStore = create<FileSystemState>()(
             .from('mindmaps')
             .select('*')
 
-          if (error) {
-            throw error
+          if (error) throw error
+          if (!mindmapsData || mindmapsData.length === 0) {
+            // No maps on server: initialize default folder
+            set({
+              folders: [
+                {
+                  id: 'default',
+                  name: 'My Mindmaps',
+                  files: [],
+                  subfolders: [],
+                  isOpen: true,
+                },
+              ],
+              activeMindMapId: null,
+            })
+            return
           }
 
           // Group mindmaps by folder
           const folderMap: Record<string, Folder> = {}
 
-          mindmapsData?.forEach((mindmap) => {
+          mindmapsData.forEach((mindmap) => {
             const folderId = mindmap.folder_id || 'default'
 
             if (!folderMap[folderId]) {
@@ -371,25 +394,23 @@ export const useFileSystemStore = create<FileSystemState>()(
 
           set({
             folders: Object.values(folderMap),
-            activeMindMapId: mindmapsData?.length ? mindmapsData[0].id : null,
+            activeMindMapId: mindmapsData[0].id,
           })
         } catch (error) {
           console.error('Failed to load mindmaps from Supabase:', error)
-
-          // Create a default folder if none exists
-          if (get().folders.length === 0) {
-            set({
-              folders: [
-                {
-                  id: 'default',
-                  name: 'My Mindmaps',
-                  files: [],
-                  subfolders: [],
-                  isOpen: true,
-                },
-              ],
-            })
-          }
+          // Fallback to default folder on error
+          set({
+            folders: [
+              {
+                id: 'default',
+                name: 'My Mindmaps',
+                files: [],
+                subfolders: [],
+                isOpen: true,
+              },
+            ],
+            activeMindMapId: null,
+          })
         }
       },
     }),

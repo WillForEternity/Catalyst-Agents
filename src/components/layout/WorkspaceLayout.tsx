@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { FileExplorer } from '@/components/file-explorer/FileExplorer'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useFileSystemStore } from '@/store/file-system-store'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useToast } from '@/components/ui/use-toast'
 
@@ -13,12 +13,18 @@ interface WorkspaceLayoutProps {
 }
 
 export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
-  const { isFileExplorerOpen, toggleFileExplorer } = useFileSystemStore()
+  const { isFileExplorerOpen, toggleFileExplorer, loadMindMaps } =
+    useFileSystemStore()
   const supabase = createClientComponentClient()
   const { toast } = useToast()
 
+  // Load persisted mindmaps on initial render
+  useEffect(() => {
+    loadMindMaps()
+  }, [loadMindMaps])
+
   return (
-    <div className="flex h-screen bg-muted/30 p-2">
+    <div className="flex h-screen bg-muted/60 p-2">
       {/* File Explorer */}
       <div
         className={`h-full ${

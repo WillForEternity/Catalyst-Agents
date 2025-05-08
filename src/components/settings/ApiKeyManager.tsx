@@ -115,7 +115,7 @@ export function ApiKeyManager() {
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="flex items-center justify-center gap-2"
+          className="flex items-center justify-center gap-2 bg-card/40 text-muted-foreground hover:bg-card/50"
         >
           <Settings className="h-4 w-4" />
           Manage API Keys
