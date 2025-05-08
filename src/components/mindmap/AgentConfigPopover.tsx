@@ -23,6 +23,7 @@ import { Settings2 } from 'lucide-react' // Icon for the trigger button
 interface AgentConfigPopoverProps {
   nodeId: string
   data: Partial<NodeData> // Allow partial data for initial setup
+  wrappedUpdateNodeData?: (nodeId: string, data: Partial<NodeData>) => void
 }
 
 // Providers - consider moving to a shared constants file
@@ -44,8 +45,16 @@ const MODEL_OPTIONS: { [key: string]: { value: string; label: string }[] } = {
   ],
 }
 
-export function AgentConfigPopover({ nodeId, data }: AgentConfigPopoverProps) {
-  const { updateNodeData } = useMindMapStore()
+export function AgentConfigPopover({
+  nodeId,
+  data,
+  wrappedUpdateNodeData,
+}: AgentConfigPopoverProps) {
+  // Only use the store's updateNodeData if wrappedUpdateNodeData isn't provided
+  const { updateNodeData: storeUpdateNodeData } = useMindMapStore()
+
+  // Use the wrapped function if provided, otherwise fall back to the store function
+  const updateNodeData = wrappedUpdateNodeData || storeUpdateNodeData
 
   const [provider, setProvider] = useState(
     data.provider || SUPPORTED_PROVIDERS[0].value,

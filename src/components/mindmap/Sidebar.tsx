@@ -7,15 +7,27 @@ import { NodeTypeSelector } from './NodeTypeSelector'
 import { ApiKeyManager } from '@/components/settings/ApiKeyManager'
 import { v4 as uuidv4 } from 'uuid'
 import { useState, useRef, useEffect, ChangeEvent } from 'react'
-import { Node } from '@xyflow/react'
+import { Node, NodeChange } from '@xyflow/react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AgentConfigPopover } from './AgentConfigPopover'
 import { Input } from '@/components/ui/input'
 
-export function Sidebar() {
-  const { nodes, addNode, updateNodeData, propagateOutput, onNodesChange } =
-    useMindMapStore()
+interface SidebarProps {
+  wrappedUpdateNodeData: (nodeId: string, data: Partial<NodeData>) => void
+  wrappedAddNode: (node: Node<NodeData>) => void
+  wrappedPropagateOutput: (sourceNodeId: string, output: string) => void
+  wrappedOnNodesChange: (changes: NodeChange[]) => void
+}
+
+export function Sidebar({
+  wrappedUpdateNodeData,
+  wrappedAddNode,
+  wrappedPropagateOutput,
+  wrappedOnNodesChange,
+}: SidebarProps) {
+  // Use the store only for reading state, not for updates
+  const { nodes } = useMindMapStore()
   // Removed showApiKeys state as we're integrating ApiKeyManager directly
   // No need for reactFlowInstance for now
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -48,7 +60,7 @@ export function Sidebar() {
       } as NodeData,
     }
 
-    addNode(newNode)
+    wrappedAddNode(newNode)
     setSelectedNodeId(newNode.id)
   }
 
@@ -56,7 +68,7 @@ export function Sidebar() {
   const handleRunAgent = async () => {
     if (!selectedNode || selectedNode.data.status === 'running') return
 
-    updateNodeData(selectedNode.id, { status: 'running', output: '' })
+    wrappedUpdateNodeData(selectedNode.id, { status: 'running', output: '' })
 
     const messages = []
     if (selectedNode.data.input) {
@@ -98,16 +110,16 @@ export function Sidebar() {
         if (done) break
         const chunk = decoder.decode(value, { stream: true })
         accumulatedOutput += chunk
-        updateNodeData(selectedNode.id, { output: accumulatedOutput })
+        wrappedUpdateNodeData(selectedNode.id, { output: accumulatedOutput })
       }
 
-      updateNodeData(selectedNode.id, { status: 'completed' })
+      wrappedUpdateNodeData(selectedNode.id, { status: 'completed' })
 
       // Propagate the output to connected nodes
-      propagateOutput(selectedNode.id, accumulatedOutput)
+      wrappedPropagateOutput(selectedNode.id, accumulatedOutput)
     } catch (error: any) {
       console.error('Failed to execute agent:', error)
-      updateNodeData(selectedNode.id, {
+      wrappedUpdateNodeData(selectedNode.id, {
         status: 'error',
         output: error.message || 'An unexpected error occurred.',
       })
@@ -129,7 +141,7 @@ export function Sidebar() {
 
   // Delete a node
   const handleDeleteNode = (nodeId: string) => {
-    onNodesChange([{ type: 'remove', id: nodeId }])
+    wrappedOnNodesChange([{ type: 'remove', id: nodeId }])
     if (selectedNodeId === nodeId) {
       setSelectedNodeId(null)
     }
@@ -144,8 +156,9 @@ export function Sidebar() {
   // Save the edited node name
   const handleSaveNodeName = () => {
     if (editingNodeId && editingNodeName.trim()) {
-      updateNodeData(editingNodeId, { label: editingNodeName.trim() })
+      wrappedUpdateNodeData(editingNodeId, { label: editingNodeName.trim() })
       setEditingNodeId(null)
+      setEditingNodeName('')
     }
   }
 
@@ -171,119 +184,131 @@ export function Sidebar() {
   }, [editingNodeId])
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-card">
-      <div className="flex flex-col space-y-4 border-b border-border p-4">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-card">
+      <div className="flex flex-col space-y-4 p-4">
         <NodeTypeSelector />
 
         <ApiKeyManager />
       </div>
 
-      <Tabs defaultValue="nodes" className="flex-1">
-        <div className="border-b border-border px-4">
+      <Tabs
+        defaultValue="nodes"
+        className="flex flex-1 flex-col overflow-hidden"
+      >
+        <div className="px-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="nodes">Nodes</TabsTrigger>
             <TabsTrigger value="output">Output</TabsTrigger>
           </TabsList>
         </div>
-
-        <TabsContent value="nodes" className="flex-1 p-0">
-          <ScrollArea className="h-full">
-            <div className="space-y-2 p-4">
-              {nodes.map((node) => (
-                <div
-                  key={node.id}
-                  className={`rounded-md border p-3 transition-colors ${
-                    selectedNodeId === node.id
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div
-                      className="flex flex-grow cursor-pointer items-center gap-2"
-                      onClick={() => setSelectedNodeId(node.id)}
-                    >
+        <ScrollArea className="flex-1 overflow-auto p-4">
+          <TabsContent value="nodes" className="p-0">
+            <h3 className="mb-2 text-sm font-medium">Available Nodes</h3>
+            {nodes.length > 0 ? (
+              <div className="space-y-2">
+                {nodes.map((node) => (
+                  <div
+                    key={node.id}
+                    className={`rounded-md border p-3 transition-colors ${
+                      selectedNodeId === node.id
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
                       <div
-                        className={`h-3 w-3 rounded-full ${getStatusColor(
-                          node.data.status,
-                        )}`}
-                        title={`Status: ${node.data.status || 'idle'}`}
-                      />
-                      {editingNodeId === node.id ? (
-                        <div className="flex items-center gap-1">
-                          <Input
-                            ref={editInputRef}
-                            value={editingNodeName}
-                            onChange={handleNodeNameChange}
-                            onKeyDown={handleKeyDown}
-                            className="h-6 py-0 text-sm"
-                            autoFocus
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={handleSaveNodeName}
-                          >
-                            <Check className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="font-medium">{node.data.label}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                        onClick={() =>
-                          handleStartEditingNode(node.id, node.data.label)
-                        }
+                        className="flex flex-grow cursor-pointer items-center gap-2"
+                        onClick={() => setSelectedNodeId(node.id)}
                       >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeleteNode(node.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                        <div
+                          className={`h-3 w-3 rounded-full ${getStatusColor(
+                            node.data.status,
+                          )}`}
+                          title={`Status: ${node.data.status || 'idle'}`}
+                        />
+                        {editingNodeId === node.id ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              ref={editInputRef}
+                              value={editingNodeName}
+                              onChange={handleNodeNameChange}
+                              onKeyDown={handleKeyDown}
+                              className="h-6 py-0 text-sm"
+                              autoFocus
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={handleSaveNodeName}
+                            >
+                              <Check className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="font-medium">{node.data.label}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                          onClick={() =>
+                            handleStartEditingNode(node.id, node.data.label)
+                          }
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDeleteNode(node.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    <p>{node.data.type?.toUpperCase() || 'AGENT'}</p>
-                    {node.data.type === 'agent' && (
-                      <p>
-                        {node.data.provider} / {node.data.model}
-                      </p>
-                    )}
-                    {node.data.sourceNodeIds &&
-                      node.data.sourceNodeIds.length > 0 && (
-                        <p className="text-xs text-blue-500">
-                          Inputs: {node.data.sourceNodeIds.length}
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      <p>{node.data.type?.toUpperCase() || 'AGENT'}</p>
+                      {node.data.type === 'agent' && (
+                        <p>
+                          {node.data.provider} / {node.data.model}
                         </p>
                       )}
-                    {node.data.targetNodeIds &&
-                      node.data.targetNodeIds.length > 0 && (
-                        <p className="text-xs text-green-500">
-                          Outputs: {node.data.targetNodeIds.length}
-                        </p>
-                      )}
+                      {node.data.sourceNodeIds &&
+                        node.data.sourceNodeIds.length > 0 && (
+                          <p className="text-xs text-blue-500">
+                            Inputs: {node.data.sourceNodeIds.length}
+                          </p>
+                        )}
+                      {node.data.targetNodeIds &&
+                        node.data.targetNodeIds.length > 0 && (
+                          <p className="text-xs text-green-500">
+                            Outputs: {node.data.targetNodeIds.length}
+                          </p>
+                        )}
+                    </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center p-4 text-center text-muted-foreground">
+                <div>
+                  <p>No nodes available</p>
+                  <p className="mt-1 text-xs">
+                    Use the "Add Node" button above to create a new node
+                  </p>
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </TabsContent>
-
-        <TabsContent value="output" className="flex-1 p-0">
-          {selectedNode ? (
-            <div className="flex h-full flex-col">
-              <div className="border-b border-border p-4">
-                <div className="flex items-center justify-between">
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="output" className="p-0">
+            {selectedNode ? (
+              <>
+                <h3 className="mb-2 text-sm font-medium">Selected Node</h3>
+                <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div
                       className={`h-3 w-3 rounded-full ${getStatusColor(
@@ -291,12 +316,15 @@ export function Sidebar() {
                       )}`}
                       title={`Status: ${selectedNode.data.status || 'idle'}`}
                     />
-                    <h3 className="font-medium">{selectedNode.data.label}</h3>
+                    <span className="font-medium">
+                      {selectedNode.data.label}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <AgentConfigPopover
                       nodeId={selectedNode.id}
                       data={selectedNode.data}
+                      wrappedUpdateNodeData={wrappedUpdateNodeData}
                     />
                     <Button
                       size="sm"
@@ -307,8 +335,7 @@ export function Sidebar() {
                     </Button>
                   </div>
                 </div>
-
-                <div className="mt-4 space-y-2 text-sm">
+                <div className="mb-4 space-y-2 text-sm">
                   <p>
                     <span className="text-muted-foreground">Provider:</span>{' '}
                     {selectedNode.data.provider || 'Not set'}
@@ -334,29 +361,26 @@ export function Sidebar() {
                     </div>
                   )}
                 </div>
-              </div>
-
-              <ScrollArea className="flex-1 p-4">
                 {selectedNode.data.output ? (
-                  <div>
+                  <>
                     <h4 className="mb-2 font-medium">Output:</h4>
                     <pre className="whitespace-pre-wrap rounded-md bg-secondary/20 p-4 text-xs">
                       {selectedNode.data.output}
                     </pre>
-                  </div>
+                  </>
                 ) : (
-                  <div className="flex h-full items-center justify-center text-muted-foreground">
+                  <div className="flex items-center justify-center text-muted-foreground">
                     No output available. Run the agent to see results.
                   </div>
                 )}
-              </ScrollArea>
-            </div>
-          ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
-              Select a node to view its output
-            </div>
-          )}
-        </TabsContent>
+              </>
+            ) : (
+              <div className="flex items-center justify-center p-4 text-muted-foreground">
+                <p>Select a node to view its output</p>
+              </div>
+            )}
+          </TabsContent>
+        </ScrollArea>
       </Tabs>
     </div>
   )

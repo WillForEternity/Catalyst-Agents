@@ -1,9 +1,18 @@
 'use client'
 
-import { ReactFlow, Background, Panel, MarkerType } from '@xyflow/react'
-import { useMindMapStore } from '@/store/mindmap-store'
+import {
+  ReactFlow,
+  Background,
+  Panel,
+  MarkerType,
+  NodeChange,
+  EdgeChange,
+  Connection,
+} from '@xyflow/react'
+import { useMindMapStore, NodeData } from '@/store/mindmap-store'
 import { useFileSystemStore } from '@/store/file-system-store'
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { Node } from '@xyflow/react'
 import AgentNode from './AgentNode'
 import { Sidebar } from './Sidebar'
 import {
@@ -22,10 +31,22 @@ const nodeTypes = {
 
 export default function MindMapCanvas() {
   // Use the Zustand stores
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect } =
-    useMindMapStore()
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    updateNodeData,
+    addNode,
+    propagateOutput,
+  } = useMindMapStore()
 
-  const { activeMindMapId } = useFileSystemStore()
+  const { activeMindMapId, saveMindMap } = useFileSystemStore()
+  const [saveStatus, setSaveStatus] = useState<
+    'saved' | 'saving' | 'error' | null
+  >(null)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   // Define default edge options for animated dashed lines flowing right-to-left
   const defaultEdgeOptions = {
@@ -108,6 +129,102 @@ export default function MindMapCanvas() {
     }
   }, [handleMouseMove, handleMouseUp])
 
+  // Function to save the current state with status updates
+  const saveCurrentState = useCallback(() => {
+    if (!activeMindMapId || nodes.length === 0) return
+
+    setSaveStatus('saving')
+    return saveMindMap(activeMindMapId, nodes, edges)
+      .then(() => {
+        setSaveStatus('saved')
+        setLastSaved(new Date())
+        // Reset status after 3 seconds
+        setTimeout(() => setSaveStatus(null), 3000)
+      })
+      .catch((error) => {
+        console.error('Auto-save failed:', error)
+        setSaveStatus('error')
+        // Reset error status after 5 seconds
+        setTimeout(() => setSaveStatus(null), 5000)
+      })
+  }, [activeMindMapId, nodes, edges, saveMindMap])
+
+  // Auto-save mindmap when changes are made to nodes or edges
+  useEffect(() => {
+    if (!activeMindMapId || nodes.length === 0) return
+
+    // Debounce save to avoid too many saves
+    const debounceTimeout = setTimeout(() => {
+      saveCurrentState()
+    }, 1000) // Wait 1 second after changes before saving
+
+    return () => {
+      clearTimeout(debounceTimeout)
+    }
+  }, [activeMindMapId, nodes, edges, saveCurrentState])
+
+  // Set up regular interval saves as a backup
+  useEffect(() => {
+    if (!activeMindMapId) return
+
+    const autoSaveInterval = setInterval(() => {
+      saveCurrentState()
+    }, 30000) // Every 30 seconds
+
+    return () => {
+      clearInterval(autoSaveInterval)
+    }
+  }, [activeMindMapId, saveCurrentState])
+
+  // Override the original store methods to ensure saves are triggered
+  const wrappedOnNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      onNodesChange(changes)
+      // The nodes state will update, which will trigger the useEffect above
+    },
+    [onNodesChange],
+  )
+
+  const wrappedOnEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      onEdgesChange(changes)
+      // The edges state will update, which will trigger the useEffect above
+    },
+    [onEdgesChange],
+  )
+
+  const wrappedOnConnect = useCallback(
+    (connection: Connection) => {
+      onConnect(connection)
+      // The edges state will update, which will trigger the useEffect above
+    },
+    [onConnect],
+  )
+
+  const wrappedUpdateNodeData = useCallback(
+    (nodeId: string, data: Partial<NodeData>) => {
+      updateNodeData(nodeId, data)
+      // The nodes state will update, which will trigger the useEffect above
+    },
+    [updateNodeData],
+  )
+
+  const wrappedAddNode = useCallback(
+    (node: Node<NodeData>) => {
+      addNode(node)
+      // The nodes state will update, which will trigger the useEffect above
+    },
+    [addNode],
+  )
+
+  const wrappedPropagateOutput = useCallback(
+    (sourceNodeId: string, output: string) => {
+      propagateOutput(sourceNodeId, output)
+      // The nodes state will update, which will trigger the useEffect above
+    },
+    [propagateOutput],
+  )
+
   return (
     <div ref={containerRef} className="relative flex h-full">
       <div
@@ -117,9 +234,9 @@ export default function MindMapCanvas() {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
+          onNodesChange={wrappedOnNodesChange}
+          onEdgesChange={wrappedOnEdgesChange}
+          onConnect={wrappedOnConnect}
           nodeTypes={nodeTypes}
           fitView
           className="h-full bg-background"
@@ -131,6 +248,34 @@ export default function MindMapCanvas() {
           <Panel position="top-left" className="ml-2 mt-2 p-4">
             <h1 className="text-xl font-bold">{getActiveMindMapName()}</h1>
           </Panel>
+
+          {/* Autosave Status - Positioned in the top-right corner of the mindmap */}
+          {activeMindMapId && (
+            <Panel position="top-right" className="mr-2 mt-2">
+              <div className="flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-xs shadow-sm backdrop-blur-sm">
+                {saveStatus === 'saving' && (
+                  <p className="animate-pulse text-muted-foreground">
+                    Saving changes...
+                  </p>
+                )}
+                {saveStatus === 'saved' && (
+                  <p className="text-green-500">Changes saved</p>
+                )}
+                {saveStatus === 'error' && (
+                  <p className="text-red-500">Error saving changes</p>
+                )}
+                {saveStatus === null && lastSaved && (
+                  <p className="text-muted-foreground">
+                    Autosaved at{' '}
+                    {lastSaved.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                )}
+              </div>
+            </Panel>
+          )}
           <Background />
         </ReactFlow>
       </div>
@@ -156,7 +301,12 @@ export default function MindMapCanvas() {
           marginLeft: '8px',
         }}
       >
-        <Sidebar />
+        <Sidebar
+          wrappedUpdateNodeData={wrappedUpdateNodeData}
+          wrappedAddNode={wrappedAddNode}
+          wrappedPropagateOutput={wrappedPropagateOutput}
+          wrappedOnNodesChange={wrappedOnNodesChange}
+        />
       </div>
     </div>
   )
