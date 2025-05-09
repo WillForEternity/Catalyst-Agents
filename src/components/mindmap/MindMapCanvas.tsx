@@ -260,6 +260,7 @@ export default function MindMapCanvas() {
         style={{ width: `calc(${leftPanelWidth}% - 4px)` }}
       >
         <ReactFlow
+          key={activeMindMapId || 'none'}
           nodes={nodes}
           edges={edges}
           onNodesChange={wrappedOnNodesChange}
