@@ -223,7 +223,13 @@ export function FileExplorer() {
                         Rename
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => deleteMindMap(folder.id, file.id)}
+                        onClick={async () => {
+                          await deleteMindMap(folder.id, file.id)
+                          if (activeMindMapId === file.id) {
+                            setNodes([])
+                            setEdges([])
+                          }
+                        }}
                         className="text-red-500"
                       >
                         Delete

@@ -348,7 +348,13 @@ export const useFileSystemStore = create<FileSystemState>()(
             .select('*')
 
           if (error) throw error
+          const currentFolders = get().folders
+
           if (!mindmapsData || mindmapsData.length === 0) {
+            // Preserve local state if there are persisted files
+            if (currentFolders.some((folder) => folder.files.length > 0)) {
+              return
+            }
             // No maps on server: initialize default folder
             set({
               folders: [
@@ -398,6 +404,11 @@ export const useFileSystemStore = create<FileSystemState>()(
           })
         } catch (error) {
           console.error('Failed to load mindmaps from Supabase:', error)
+          const currentFolders = get().folders
+          // Preserve local persisted data on error
+          if (currentFolders.some((folder) => folder.files.length > 0)) {
+            return
+          }
           // Fallback to default folder on error
           set({
             folders: [
