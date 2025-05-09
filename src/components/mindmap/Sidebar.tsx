@@ -19,6 +19,10 @@ interface SidebarProps {
   wrappedAddNode: (node: Node<NodeData>) => void
   wrappedPropagateOutput: (sourceNodeId: string, output: string) => void
   wrappedOnNodesChange: (changes: NodeChange[]) => void
+  selectedNodeId: string | null
+  onSelectNode: (nodeId: string | null) => void
+  activeTab: 'nodes' | 'output'
+  onTabChange: (tab: 'nodes' | 'output') => void
 }
 
 export function Sidebar({
@@ -26,12 +30,15 @@ export function Sidebar({
   wrappedAddNode,
   wrappedPropagateOutput,
   wrappedOnNodesChange,
+  selectedNodeId,
+  onSelectNode,
+  activeTab,
+  onTabChange,
 }: SidebarProps) {
   // Use the store only for reading state, not for updates
   const { nodes } = useMindMapStore()
   // Removed showApiKeys state as we're integrating ApiKeyManager directly
   // No need for reactFlowInstance for now
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
   const [editingNodeName, setEditingNodeName] = useState<string>('')
   const editInputRef = useRef<HTMLInputElement>(null)
@@ -62,7 +69,7 @@ export function Sidebar({
     }
 
     wrappedAddNode(newNode)
-    setSelectedNodeId(newNode.id)
+    onSelectNode(newNode.id)
   }
 
   // Run the selected agent
@@ -144,7 +151,7 @@ export function Sidebar({
   const handleDeleteNode = (nodeId: string) => {
     wrappedOnNodesChange([{ type: 'remove', id: nodeId }])
     if (selectedNodeId === nodeId) {
-      setSelectedNodeId(null)
+      onSelectNode(null)
     }
   }
 
@@ -193,7 +200,10 @@ export function Sidebar({
       </div>
 
       <Tabs
-        defaultValue="nodes"
+        value={activeTab}
+        onValueChange={(value: string) =>
+          onTabChange(value as 'nodes' | 'output')
+        }
         className="flex flex-1 flex-col overflow-hidden"
       >
         <div className="px-4">
@@ -238,7 +248,7 @@ export function Sidebar({
                       <div className="flex items-center justify-between">
                         <div
                           className="flex flex-grow cursor-pointer items-center gap-2"
-                          onClick={() => setSelectedNodeId(node.id)}
+                          onClick={() => onSelectNode(node.id)}
                         >
                           <div
                             className={`h-3 w-3 rounded-full ${getStatusColor(

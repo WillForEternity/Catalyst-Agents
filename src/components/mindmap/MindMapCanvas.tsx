@@ -51,6 +51,10 @@ export default function MindMapCanvas() {
   >(null)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
+  // Sidebar selection state and active tab for nodes/output
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'nodes' | 'output'>('nodes')
+
   // Define default edge options for animated dashed lines flowing right-to-left
   const defaultEdgeOptions = {
     animated: true,
@@ -261,6 +265,10 @@ export default function MindMapCanvas() {
           onNodesChange={wrappedOnNodesChange}
           onEdgesChange={wrappedOnEdgesChange}
           onConnect={wrappedOnConnect}
+          onNodeClick={(event, node) => {
+            setSelectedNodeId(node.id)
+            setActiveTab('output')
+          }}
           nodeTypes={nodeTypes}
           fitView
           className="h-full bg-background"
@@ -332,6 +340,10 @@ export default function MindMapCanvas() {
           wrappedAddNode={wrappedAddNode}
           wrappedPropagateOutput={wrappedPropagateOutput}
           wrappedOnNodesChange={wrappedOnNodesChange}
+          selectedNodeId={selectedNodeId}
+          onSelectNode={setSelectedNodeId}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
       </div>
     </div>

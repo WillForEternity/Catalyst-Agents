@@ -24,7 +24,7 @@ export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   }, [loadMindMaps])
 
   return (
-    <div className="flex h-screen bg-muted/60 p-2">
+    <div className="flex h-screen bg-muted/100 p-2">
       {/* File Explorer */}
       <div
         className={`h-full ${
