@@ -28,19 +28,26 @@ const AgentNode = memo(({ id, data }: NodeProps<Node<StoreNodeData>>) => {
   const getNodeTypeStyles = () => {
     switch (nodeData.type) {
       case 'input':
-        return 'from-[#a5d28e] to-[#d4f1b8]' // Left less dark, right stays light
+        // subtle green gradient
+        return 'from-[#a5d28e] to-[#b3d9a1]'
       case 'agent':
-        return 'from-[#4ba282] to-[#7adcb0]' // Left less dark
+        // subtle teal gradient
+        return 'from-[#4ba282] to-[#5bcf99]'
       case 'prompt':
-        return 'from-[#3faf9b] to-[#80dccc]' // Left less dark
+        // subtle aqua gradient
+        return 'from-[#3faf9b] to-[#5fd2ab]'
       case 'conditional':
-        return 'from-[#5290c5] to-[#a1cffa]' // Left less dark
+        // subtle blue gradient
+        return 'from-[#5290c5] to-[#6baedc]'
       case 'tool-call':
-        return 'from-[#c24675] to-[#e07ea3]' // Left less dark
+        // subtle magenta gradient
+        return 'from-[#c24675] to-[#cc5880]'
       case 'output':
-        return 'from-[#d78b5f] to-[#ffb899]' // Left less dark
+        // subtle orange gradient
+        return 'from-[#d78b5f] to-[#e49d77]'
       default:
-        return 'from-[#4ba282] to-[#7adcb0]' // Left less dark default
+        // default subtle teal
+        return 'from-[#4ba282] to-[#5bcf99]'
     }
   }
 
