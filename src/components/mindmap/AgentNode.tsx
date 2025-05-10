@@ -34,8 +34,8 @@ const AgentNode = memo(({ id, data }: NodeProps<Node<StoreNodeData>>) => {
         // subtle teal gradient
         return 'from-[#4ba282] to-[#5bcf99]'
       case 'prompt':
-        // subtle aqua gradient
-        return 'from-[#3faf9b] to-[#5fd2ab]'
+        // turquoise-aqua gradient
+        return 'from-[#30e3ca] to-[#40d7cb]'
       case 'conditional':
         // subtle blue gradient
         return 'from-[#5290c5] to-[#6baedc]'
