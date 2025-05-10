@@ -28,26 +28,26 @@ const AgentNode = memo(({ id, data }: NodeProps<Node<StoreNodeData>>) => {
   const getNodeTypeStyles = () => {
     switch (nodeData.type) {
       case 'input':
-        // subtle green gradient
-        return 'from-[#a5d28e] to-[#b3d9a1]'
+        // noticeable green gradient
+        return 'from-[#a5d28e] to-[#72b06e]'
       case 'agent':
-        // subtle teal gradient
-        return 'from-[#4ba282] to-[#5bcf99]'
+        // noticeable teal gradient
+        return 'from-[#4ba282] to-[#187b5a]'
       case 'prompt':
-        // turquoise-aqua gradient with pronounced transition
-        return 'from-[#30e3ca] via-[#35d2c7] to-[#40d7cb]'
+        // pronounced turquoise-aqua gradient
+        return 'from-[#30e3ca] via-[#24d1be] to-[#0e9b8a]'
       case 'conditional':
-        // subtle blue gradient
-        return 'from-[#5290c5] to-[#6baedc]'
+        // noticeable blue gradient
+        return 'from-[#5290c5] to-[#2f6fa5]'
       case 'tool-call':
-        // subtle magenta gradient
-        return 'from-[#c24675] to-[#cc5880]'
+        // noticeable magenta gradient
+        return 'from-[#c24675] to-[#912f58]'
       case 'output':
-        // subtle orange gradient
-        return 'from-[#d78b5f] to-[#e49d77]'
+        // noticeable orange gradient
+        return 'from-[#d78b5f] to-[#a1503c]'
       default:
-        // default subtle teal
-        return 'from-[#4ba282] to-[#5bcf99]'
+        // default noticeable teal gradient
+        return 'from-[#4ba282] to-[#187b5a]'
     }
   }
 
